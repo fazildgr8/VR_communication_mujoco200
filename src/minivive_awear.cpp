@@ -18,7 +18,11 @@ using namespace vr;
 #include "zmq.hpp"
 #include "zmq_addon.hpp"
 #include <future>
-
+#include <sstream>
+#include <vector>
+#include <iterator>
+#include <cassert>
+#include <algorithm>
 //-------------------------------- MuJoCo global data -----------------------------------
 
 // MuJoCo model and data
@@ -314,41 +318,46 @@ void v_render(void)
 }
 
 //------------------ Simulation Function Definitions --------------------------------------
+std::vector<float> string_array (std::string Numbers) {
 
-void SubscriberThread(zmq::context_t *ctx) {
-    //  Prepare subscriber
-    zmq::socket_t subscriber(*ctx, zmq::socket_type::sub);
-    subscriber.connect("tcp://localhost:5556");
+  // If possible, always prefer std::vector to naked array
+  std::vector<float> v;
 
-    // String topic1 = "10"
-    subscriber.set(zmq::sockopt::subscribe, "");
+  // Build an istream that holds the input string
+  std::istringstream iss(Numbers);
 
-    while (1) {
-        // Receive all parts of the message
-        std::vector<zmq::message_t> recv_msgs;
-        zmq::recv_result_t result =
-          zmq::recv_multipart(subscriber, std::back_inserter(recv_msgs));
-        assert(result && "recv failed");
+  // Iterate over the istream, using >> to grab floats
+  // and push_back to store them in the vector
+  std::copy(std::istream_iterator<float>(iss),
+        std::istream_iterator<float>(),
+        std::back_inserter(v));
 
-        std::cout << "Thread2: [" << recv_msgs[0] << "] "
-                  << recv_msgs[1]<< std::endl;
+  return v;
+}
+
+void print_vec(std::vector<float> const &input)
+{
+    std::cout<<"Received qpos:";
+    for (int i = 0; i < input.size(); i++) {
+        std::cout << input.at(i) << ' ';
     }
 }
 
-void controll(void)
+void controll(std::vector<float> qpos_arr)
 {
-    zmq::context_t ctx(0);
-    auto thread = std::async(std::launch::async, SubscriberThread, &ctx);
-    thread.wait();
-    int i = 0;
-    d->ctrl[7] = i;
-    d->ctrl[8] = i;
-    d->ctrl[9] = i;
-    d->ctrl[10] = i;
-    d->ctrl[11] = i;
-    d->ctrl[12] = i;
-    d->ctrl[3] = i;
-    d->ctrl[4] = i;
+
+    d->ctrl[7] = qpos_arr[0];
+    d->ctrl[8] = qpos_arr[1];
+    d->ctrl[9] = qpos_arr[2];
+    d->ctrl[10] = qpos_arr[3];
+    d->ctrl[11] = qpos_arr[4];
+    d->ctrl[12] = qpos_arr[5];
+    d->ctrl[3] = qpos_arr[6];
+    d->ctrl[4] = qpos_arr[7];
+    //
+    //
+    //
+    // All the Actuator Control - (Defined in the Model XML file)
 }
 
 
@@ -356,6 +365,11 @@ void controll(void)
 
 int main(int argc, const char** argv)
 {
+    zmq::context_t context (1);
+    zmq::socket_t socket (context, ZMQ_REQ);
+    socket.bind ("tcp://*:5555");
+
+
     char filename[100];
 
     // get filename from command line or iteractively
@@ -409,8 +423,20 @@ int main(int argc, const char** argv)
             // save simulation time
             frametime = d->time;
         }
-        controll();
-
+//////////////////////////////////////////////////////
+//////////////ZMQ/////////////////////////////////////
+        zmq::message_t request (4);
+        memcpy ((void *) request.data (), "qpos", 4);
+        socket.send (request);
+        zmq::message_t qpos;
+        //  Wait for next request from client
+        socket.recv (&qpos);
+        std::vector<float> qpos_arr = string_array(qpos.to_string());
+        print_vec(qpos_arr);
+        std::cout<<"\n";
+        // Update mjdata with new qpos
+        controll(qpos_arr);
+////////////////////////////////////////////////////////
         // simulate
         mj_step(m, d);
 

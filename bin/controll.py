@@ -1,6 +1,7 @@
 import zmq
 import numpy as np
 from time import sleep
+import random
 context = zmq.Context()
 
 # Socket to talk to server
@@ -20,9 +21,10 @@ def send_qpos(qpos):
     print("Sending reply to request", request, '== ',arr_fromat(qpos))
     socket.send_string(arr_fromat(qpos))
 
-# Tester
+# # Tester
 while(True):
     # Get the request.
-    qpos = 3.14*np.ones(13)
+    n = random.uniform(-3.14,3.14)
+    qpos = n*np.ones(13)
     send_qpos(qpos)
 
