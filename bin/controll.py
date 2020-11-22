@@ -1,11 +1,28 @@
 import zmq
+import numpy as np
 from time import sleep
 context = zmq.Context()
-socket = context.socket(zmq.PUB)
-socket.bind("tcp://*:5555")
 
-while True:
-    msg = "hello"
-    socket.send_string(msg)
-    print("sent "+ msg)
-    sleep(0.5)
+# Socket to talk to server
+print("Connecting to hello world server...")
+socket = context.socket(zmq.REP)
+socket.connect("tcp://localhost:5555")
+
+def arr_fromat(arr):
+    string = str(arr[0]);
+    arr2 = arr[1:]
+    for e in arr2:
+        string = string+' '+str(e)
+    return string
+def send_qpos(qpos):
+    request = socket.recv()
+    print("Received request [", request, "]")
+    print("Sending reply to request", request, '== ',arr_fromat(qpos))
+    socket.send_string(arr_fromat(qpos))
+
+# Tester
+while(True):
+    # Get the request.
+    qpos = 3.14*np.ones(13)
+    send_qpos(qpos)
+
