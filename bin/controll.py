@@ -28,3 +28,4 @@ while(True):
     qpos = n*np.ones(13)
     send_qpos(qpos)
 
+
