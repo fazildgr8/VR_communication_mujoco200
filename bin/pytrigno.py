@@ -2,6 +2,9 @@ import socket
 import struct
 import numpy
 '''
+Forked from - https://github.com/axopy/pytrigno
+'''
+'''
 Ports of Data
 
 EMG Legacy - 50041
