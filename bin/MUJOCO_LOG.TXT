@@ -9,3 +9,6 @@ Failed to open file
 Thu Nov 19 13:15:54 2020
 ERROR: Could not init VR runtime: Hmd Not Found (108)
 
+Fri Dec 11 00:13:59 2020
+ERROR: Expected HMD and at least one Controller
+

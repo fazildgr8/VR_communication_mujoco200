@@ -4,7 +4,7 @@ from time import sleep
 import random
 context = zmq.Context()
 
-# Socket to talk to server
+Socket to talk to server
 print("Connecting to hello world server...")
 socket = context.socket(zmq.REP)
 socket.connect("tcp://localhost:5555")
@@ -27,5 +27,3 @@ while(True):
     n = random.uniform(-3.14,3.14)
     qpos = n*np.ones(13)
     send_qpos(qpos)
-
-

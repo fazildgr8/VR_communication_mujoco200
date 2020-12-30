@@ -10,19 +10,20 @@
 
 #include "GL/glew.h"
 #include "glfw3.h"
+
 #include <iostream>
+#include <iterator>
+#include <fstream>
+#include <vector>
+#include <algorithm> // for std::copy
+#include <string>
+#include <sstream>
+#include <cassert>
+
 #include <openvr.h>
 using namespace vr;
 
 
-#include "zmq.hpp"
-#include "zmq_addon.hpp"
-#include <future>
-#include <sstream>
-#include <vector>
-#include <iterator>
-#include <cassert>
-#include <algorithm>
 //-------------------------------- MuJoCo global data -----------------------------------
 
 // MuJoCo model and data
@@ -316,34 +317,9 @@ void v_render(void)
         glfwSwapBuffers(window);
     glFlush();
 }
+//------------------------------- Simulation Function ------------------------------------
 
-//------------------ Simulation Function Definitions --------------------------------------
-std::vector<float> string_array (std::string Numbers) {
-
-  // If possible, always prefer std::vector to naked array
-  std::vector<float> v;
-
-  // Build an istream that holds the input string
-  std::istringstream iss(Numbers);
-
-  // Iterate over the istream, using >> to grab floats
-  // and push_back to store them in the vector
-  std::copy(std::istream_iterator<float>(iss),
-        std::istream_iterator<float>(),
-        std::back_inserter(v));
-
-  return v;
-}
-
-void print_vec(std::vector<float> const &input)
-{
-    std::cout<<"Received qpos:";
-    for (int i = 0; i < input.size(); i++) {
-        std::cout << input.at(i) << ' ';
-    }
-}
-
-void controll(std::vector<float> qpos_arr)
+void controll(std::vector<double> qpos_arr)
 {
 
     d->ctrl[7] = qpos_arr[0];
@@ -360,16 +336,22 @@ void controll(std::vector<float> qpos_arr)
     // All the Actuator Control - (Defined in the Model XML file)
 }
 
+std::vector<double> get_vector (std::string file) {
+
+  std::ifstream is(file);
+  std::istream_iterator<double> start(is), end;
+  std::vector<double> numbers(start, end);
+  std::copy(numbers.begin(), numbers.end(), 
+            std::ostream_iterator<double>(std::cout, " "));
+  std::cout << std::endl;
+
+  return numbers;
+}
 
 //-------------------------------- main function ----------------------------------------
 
 int main(int argc, const char** argv)
 {
-    zmq::context_t context (1);
-    zmq::socket_t socket (context, ZMQ_REQ);
-    socket.bind ("tcp://*:5555");
-
-
     char filename[100];
 
     // get filename from command line or iteractively
@@ -419,25 +401,13 @@ int main(int argc, const char** argv)
 
             // render to vr and window
             v_render();
-
+            controll(get_vector("file.txt"));
             // save simulation time
             frametime = d->time;
         }
-//////////////////////////////////////////////////////
-//////////////ZMQ/////////////////////////////////////
-        zmq::message_t request (4);
-        memcpy ((void *) request.data (), "qpos", 4);
-        socket.send (request);
-        zmq::message_t qpos;
-        //  Wait for next request from client
-        socket.recv (&qpos);
-        std::vector<float> qpos_arr = string_array(qpos.to_string());
-        print_vec(qpos_arr);
-        std::cout<<"\n";
-        // Update mjdata with new qpos
-        controll(qpos_arr);
-////////////////////////////////////////////////////////
+
         // simulate
+        
         mj_step(m, d);
 
         // update GUI
