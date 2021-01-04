@@ -11,16 +11,20 @@
 #include "GL/glew.h"
 #include "glfw3.h"
 
-#include <iostream>
-#include <iterator>
-#include <fstream>
-#include <vector>
-#include <algorithm> // for std::copy
-#include <string>
-#include <sstream>
-#include <cassert>
-
 #include <openvr.h>
+
+#include <iostream>
+#include "zmq.hpp"
+#include "zmq_addon.hpp"
+#include <future>
+#include <sstream>
+#include <vector>
+#include <iterator>
+#include <cassert>
+#include <algorithm>
+
+
+
 using namespace vr;
 
 
@@ -317,9 +321,35 @@ void v_render(void)
         glfwSwapBuffers(window);
     glFlush();
 }
-//------------------------------- Simulation Function ------------------------------------
 
-void controll(std::vector<double> qpos_arr)
+//------------------ Simulation Function Definitions --------------------------------------
+std::vector<float> string_array (std::string Numbers) {
+
+  // If possible, always prefer std::vector to naked array
+  std::vector<float> v;
+
+  // Build an istream that holds the input string
+  std::istringstream iss(Numbers);
+
+  // Iterate over the istream, using >> to grab floats
+  // and push_back to store them in the vector
+  std::copy(std::istream_iterator<float>(iss),
+        std::istream_iterator<float>(),
+        std::back_inserter(v));
+
+  return v;
+}
+
+void print_vec(std::vector<float> const &input)
+{
+    std::cout<<"Received qpos:";
+    for (int i = 0; i < input.size(); i++) {
+        std::cout << input.at(i) << ' ';
+    }
+    std::cout<<std::endl;
+}
+
+void controll(std::vector<float> qpos_arr)
 {
 
     d->ctrl[7] = qpos_arr[0];
@@ -336,23 +366,20 @@ void controll(std::vector<double> qpos_arr)
     // All the Actuator Control - (Defined in the Model XML file)
 }
 
-std::vector<double> get_vector (std::string file) {
-
-  std::ifstream is(file);
-  std::istream_iterator<double> start(is), end;
-  std::vector<double> numbers(start, end);
-  std::copy(numbers.begin(), numbers.end(), 
-            std::ostream_iterator<double>(std::cout, " "));
-  std::cout << std::endl;
-
-  return numbers;
-}
 
 //-------------------------------- main function ----------------------------------------
 
 int main(int argc, const char** argv)
 {
     char filename[100];
+
+    zmq::context_t context(1);
+    zmq::socket_t subscriber (context, ZMQ_SUB);
+    // subscriber.connect("tcp://127.0.0.1:5555");
+    subscriber.connect("tcp://localhost:5555");
+    subscriber.setsockopt(ZMQ_LINGER, 0);
+    subscriber.setsockopt(ZMQ_SUBSCRIBE, "",0);
+    subscriber.setsockopt(ZMQ_CONFLATE, 1);
 
     // get filename from command line or iteractively
     if( argc==2 )
@@ -398,16 +425,19 @@ int main(int argc, const char** argv)
             // char fpsinfo[20];
             // sprintf(fpsinfo, "FPS %.0f", FPS);
             // mjr_overlay(mjFONT_BIG, mjGRID_BOTTOMLEFT, viewFull, fpsinfo, NULL, &con);
-
+            zmq::message_t qpos;
+            subscriber.recv(&qpos);
+            std::vector<float> qpos_arr = string_array(qpos.to_string());
+            print_vec(qpos_arr);
+            controll(qpos_arr);
             // render to vr and window
             v_render();
-            controll(get_vector("file.txt"));
+
             // save simulation time
             frametime = d->time;
         }
 
         // simulate
-        
         mj_step(m, d);
 
         // update GUI
