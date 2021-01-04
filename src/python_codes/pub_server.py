@@ -20,3 +20,5 @@ while True:
     string = "%d %d" % (topic, messagedata)
     socket.send(string.encode('ascii'))
     time.sleep(1)
+
+    

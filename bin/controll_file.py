@@ -30,5 +30,5 @@ while(True):
         for item in list(qpos):
             f.write("%s \n" % item)
     print(qpos)
-    sleep(1)
+    sleep(0.5)
     # send_qpos(qpos)

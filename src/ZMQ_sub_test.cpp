@@ -1,33 +1,22 @@
+#include <zmq.hpp>
 #include <iostream>
-#include <iterator>
-#include <fstream>
-#include <vector>
-#include <algorithm> // for std::copy
-#include <string>
-#include <sstream>
-#include <cassert>
 
-
-
-std::vector<double> get_vector (std::string file) {
-
-  std::ifstream is(file);
-  std::istream_iterator<double> start(is), end;
-  std::vector<double> numbers(start, end);
-  std::cout << "Read " << numbers.size() << " numbers" << std::endl;
-
-  // print the numbers to stdout
-  std::cout << "numbers read in:\n";
-  std::copy(numbers.begin(), numbers.end(), 
-            std::ostream_iterator<double>(std::cout, " "));
-  std::cout << std::endl;
-
-  return numbers;
-}
-
-int main()
+int main ()
 {
-  while(true){get_vector("file.txt");}
+    zmq::context_t context(1);
+    zmq::socket_t subscriber (context, ZMQ_SUB);
+    // subscriber.connect("tcp://127.0.0.1:5555");
+    subscriber.connect("tcp://localhost:5555");
+    subscriber.setsockopt(ZMQ_LINGER, 0);
+    subscriber.setsockopt(ZMQ_SUBSCRIBE, "",0);
+    subscriber.setsockopt(ZMQ_CONFLATE, 1);
 
+    while(true) {   
+        // std::cout << "Getting data" << std::endl;
+        zmq::message_t update;
+        subscriber.recv(&update);
+        std::cout<<update<<std::endl;
+        // std::cout << "Data received" << std::endl;
 
+    }
 }

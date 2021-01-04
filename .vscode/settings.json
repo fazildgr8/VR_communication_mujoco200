@@ -64,5 +64,5 @@
         "resumable": "cpp",
         "fstream": "cpp"
     },
-    "python.pythonPath": "C:\\Users\\moham\\AppData\\Local\\Programs\\Python\\Python38\\python.exe"
+    "python.pythonPath": "C:\\Users\\moham\\Anaconda3\\envs\\stereo_robot\\python.exe"
 }
