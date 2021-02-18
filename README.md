@@ -1,3 +1,6 @@
+# Mujoco VR with PubSub communication
+This is the development repo of Virtual Reality rendering with Mujoco Physics Environment with help of OpenVR SDK and HTC Vive HMD hardware. On top of it, a PubSub socket-based communication is introduced using the ZMQ library. Using this PubSub communication any application outside the Mujoco application can be used to operate actuators inside the Mujoco environment by just publishing the joint positions to the Topic to which the Mujoco has subscribed. 
+
 # vive-mujoco
 
 ## Setup
